@@ -1,41 +1,69 @@
       * Sample COBOL program
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. hello.
+       PROGRAM-ID. HELLO.
 
        ENVIRONMENT DIVISION.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-           SELECT SYSIN ASSIGN TO KEYBOARD ORGANIZATION LINE SEQUENTIAL.
+       SELECT STUDENT ASSIGN TO KEYBOARD
+           ORGANIZATION IS LINE SEQUENTIAL.            
+
        DATA DIVISION.
-       
        FILE SECTION.
-       FD SYSIN.
-       01 ln PIC X(255).
-           88 EOF VALUE HIGH-VALUES.
+       FD STUDENT.
+       01 STUDENT-FILE.
+           05 STUDENT-ID PIC X(10).
+
        WORKING-STORAGE SECTION.
-           01 n PIC 9(10).
-           01 highest PIC 9(10).
-           01 curr PIC 9(10).
+       01 WS-CURR PIC 9(20).
+       01 WS-HIGHEST PIC 9(20) VALUE ZEROES.
+       01 WS-HIGHEST2 PIC 9(20) VALUE ZEROES.
+       01 WS-HIGHEST3 PIC 9(20) VALUE ZEROES.
+       01 WS-TOTAL PIC 9(20) VALUE ZEROES.
+       01 WS-N PIC 9(20).
+       01 WS-LINE PIC X(20).
+       01 WS-EOF PIC A(1). 
+
        PROCEDURE DIVISION.
        MAIN-PROCEDURE.
-           DISPLAY 'reading blocks'.
-           OPEN INPUT SYSIN.
-           PERFORM ReadBlocks UNTIL EOF.
-           DISPLAY highest.
-           CLOSE SYSIN.
+           OPEN INPUT STUDENT.
+           PERFORM UNTIL WS-EOF='Y'
+               READ STUDENT INTO WS-LINE
+                   AT END MOVE 'Y' TO WS-EOF
+                   NOT AT END PERFORM CheckBlock
+               END-READ
+           END-PERFORM.
+           PERFORM FinishBlock.
+           DISPLAY WS-HIGHEST.
+           DISPLAY WS-HIGHEST2.
+           DISPLAY WS-HIGHEST3.
+           COMPUTE WS-TOTAL = WS-HIGHEST + WS-HIGHEST2 + WS-HIGHEST3.
+           DISPLAY WS-TOTAL.
+           CLOSE STUDENT.
            STOP RUN.
-        ReadBlocks.
-           DISPLAY 'single block'.
-           PERFORM ReadBlock UNTIL ln EQUAL SPACES.
-           IF curr > highest
-               MOVE curr TO highest
+
+       CheckBlock.
+           IF WS-LINE NOT EQUAL SPACES
+               MOVE WS-LINE TO WS-N
+               COMPUTE WS-CURR = WS-CURR + WS-N
+               MOVE 0 TO WS-N
+           ELSE
+               PERFORM FinishBlock
            END-IF.
-           MOVE 0 to CURR.
-        ReadBlock.
-           READ SYSIN
-               AT END SET EOF TO TRUE
-           END-READ.
-           IF ln NOT EQUAL SPACES OR NOT EOF
-               MOVE ln TO n
-               COMPUTE curr = curr + n
+
+        FinishBlock.
+           IF WS-CURR > WS-HIGHEST
+               MOVE WS-HIGHEST2 TO WS-HIGHEST3
+               MOVE WS-HIGHEST TO WS-HIGHEST2
+               MOVE WS-CURR TO WS-HIGHEST
+           ELSE
+               IF WS-CURR > WS-HIGHEST2
+                   MOVE WS-HIGHEST2 TO WS-HIGHEST3
+                   MOVE WS-CURR TO WS-HIGHEST2
+               ELSE
+                   IF WS-CURR > WS-HIGHEST3
+                       MOVE WS-CURR TO WS-HIGHEST3
+                   END-IF
+               END-IF
            END-IF.
+           MOVE 0 TO WS-CURR.
