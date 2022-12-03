@@ -40,7 +40,7 @@ fn part2() {
         .collect();
 
     for chunk in lines.chunks(3) {
-        let mut unique = chunk
+        let unique = chunk
             .into_iter()
             .map(|c| -> HashSet<char> { c.to_owned().chars().into_iter().collect() })
             .reduce(|mut c, n| {
@@ -49,7 +49,7 @@ fn part2() {
             })
             .expect("has value");
 
-        score += get_prio(&unique.drain().next().expect("has at most one")) as u32;
+        score += get_prio(&unique.into_iter().next().expect("has at at least one")) as u32;
     }
 
     println!("{}", score);
