@@ -1,28 +1,24 @@
 use std::io::{stdin, BufRead};
 
 struct Tree {
-    c: char,
-    height: u32,
+    height: i32,
     visible: bool,
 }
 
 impl From<char> for Tree {
     fn from(c: char) -> Self {
         Self {
-            c,
-            height: c.to_digit(10).unwrap(),
-            visible: true,
+            height: c.to_digit(10).unwrap() as i32,
+            visible: false,
         }
     }
 }
 
-fn topcheck(curtop: &mut u32, height: u32) -> bool {
-    if height > *curtop {
-        *curtop = height;
-        return true;
+fn topcheck(curtop: &mut i32, tree: &mut Tree) {
+    if tree.height > *curtop {
+        tree.visible = true;
+        *curtop = tree.height;
     }
-
-    return false;
 }
 
 fn main() {
@@ -32,34 +28,36 @@ fn main() {
         .map(|l| l.unwrap().chars().map(|c| c.into()).collect::<Vec<Tree>>())
         .collect::<Vec<Vec<Tree>>>();
 
-    let w = lines[0].len() - 1;
-    let h = lines[1].len() - 1;
+    let w = lines[0].len();
+    let h = lines.len();
 
-    for y in 0..=h {
-        let mut top = 0;
-        for x in 0..=w {
-            lines[y][x].visible |= topcheck(&mut top, lines[y][x].height);
+    // for all rows:
+    for y in 0..h {
+        // east to west
+        let mut top = -1;
+        for x in 0..w {
+            topcheck(&mut top, &mut lines[y][x]);
+        }
+
+        // west to east
+        let mut top = -1;
+        for x in (0..w).rev() {
+            topcheck(&mut top, &mut lines[y][x]);
         }
     }
 
-    for y in 0..=h {
-        let mut top = 0;
-        for x in w..=0 {
-            lines[y][x].visible |= topcheck(&mut top, lines[y][x].height);
+    // for all cols
+    for x in 0..w {
+        // north to south
+        let mut top = -1;
+        for y in 0..h {
+            topcheck(&mut top, &mut lines[y][x]);
         }
-    }
 
-    for y in h..=0 {
-        let mut top = 0;
-        for x in 0..=w {
-            lines[y][x].visible |= topcheck(&mut top, lines[y][x].height);
-        }
-    }
-
-    for y in 0..=h {
-        let mut top = 0;
-        for x in w..=0 {
-            lines[y][x].visible |= topcheck(&mut top, lines[y][x].height);
+        // south to north
+        let mut top = -1;
+        for y in (0..h).rev() {
+            topcheck(&mut top, &mut lines[y][x]);
         }
     }
 
