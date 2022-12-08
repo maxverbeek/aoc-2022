@@ -74,18 +74,10 @@ fn main() {
         }
     }
 
-    let mut count = 0;
-
-    for line in lines.iter() {
-        for tree in line {
-            if tree.visible {
-                count += 1;
-            } else {
-            }
-            print!("{:01$} ", tree.scenic, 2);
-        }
-        print!("\n");
-    }
+    let count: usize = lines
+        .iter()
+        .map(|l| l.iter().filter(|t| t.visible).count())
+        .sum();
 
     println!("visible trees: {}", count);
 
