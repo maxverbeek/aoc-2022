@@ -96,26 +96,11 @@ fn parse_moves(input: &str) -> impl Iterator<Item = Coord> {
 }
 
 fn main() {
-    let mut knots = [Coord { x: 0, y: 0 }; 10];
+    let knots = [Coord { x: 0, y: 0 }; 10];
 
     let instructions = stdin().lock().lines().map(|l| l.unwrap());
     let mut moves: Vec<Coord> = instructions.flat_map(|l| parse_moves(&l)).collect();
-    let mut knotpositions: Vec<HashSet<Coord>> = iter::repeat(HashSet::new()).take(10).collect();
 
-    for m in moves.iter() {
-        for i in 0..9 {
-            let head = knots[i];
-            let mut tail = knots[i + 1];
-
-            let head = head + *m;
-            let tailmove = calctailmove(&head, &tail);
-
-            if tailmove.magnitude() > 0 {
-                tail = tail + tailmove;
-                knotpositions[i + 1].insert(tail);
-            }
-        }
-    }
     for i in 0..9 {
         let mut head = knots[i];
         let mut tail = knots[i + 1];
