@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     io::{stdin, BufRead},
 };
 
@@ -9,6 +9,7 @@ use regex::Regex;
 struct Node {
     rate: i32,
     children: Vec<String>,
+    idx: usize,
 }
 
 fn solve(
@@ -55,27 +56,55 @@ fn solve(
     best
 }
 
+type OpenMask = usize;
+
+trait Set {
+    fn is_open(&self, idx: usize) -> bool;
+    fn set_open(&mut self, idx: usize, count: &mut usize);
+    fn set_closed(&mut self, idx: usize, count: &mut usize);
+}
+
+impl Set for OpenMask {
+    fn is_open(&self, idx: usize) -> bool {
+        (*self) & 1 << idx > 0
+    }
+
+    fn set_open(&mut self, idx: usize, count: &mut usize) {
+        *self = (*self) | 1 << idx;
+        *count += 1;
+    }
+
+    fn set_closed(&mut self, idx: usize, count: &mut usize) {
+        *self = (*self) & !(1 << idx);
+        *count -= 1;
+    }
+}
+
 fn solve_part2(
     myloc: &str,
     elephantloc: &str,
     nodes: &HashMap<String, Node>,
-    opened: &mut Vec<String>,
+    opened: &mut OpenMask,
     steps_remain: i32,
-    memo: &mut HashMap<(String, String, Vec<String>, i32), i32>,
+    memo: &mut HashMap<(String, String, usize, i32), i32>,
     total_nodes: usize,
+    open_count: usize,
 ) -> i32 {
     if steps_remain <= 0 {
         return 0;
     }
 
-    if opened.len() == total_nodes {
+    if open_count == total_nodes {
         return 0;
     }
+
+    // declare open_count as mutable
+    let mut open_count = open_count;
 
     let key = (
         myloc.to_owned(),
         elephantloc.to_owned(),
-        opened.clone(),
+        *opened,
         steps_remain,
     );
 
@@ -89,16 +118,16 @@ fn solve_part2(
     let elnode = nodes.get(elephantloc).unwrap();
 
     // attempt to open the valve where i am currently at
-    if mynode.rate > 0 && !opened.contains(&myloc.to_string()) {
+    if mynode.rate > 0 && !opened.is_open(mynode.idx) {
         // flow in this node when opened
         let myflow = mynode.rate * (steps_remain - 1);
-        opened.push(myloc.to_string());
+        opened.set_open(mynode.idx, &mut open_count);
 
         for mychild in &mynode.children {
             // with my valve opened, have the elephant perform a similar routine
-            if elnode.rate > 0 && !opened.contains(&elephantloc.to_string()) {
+            if elnode.rate > 0 && !opened.is_open(elnode.idx) {
                 let elflow = elnode.rate * (steps_remain - 1);
-                opened.push(elephantloc.to_string());
+                opened.set_open(elnode.idx, &mut open_count);
 
                 for elchild in &elnode.children {
                     let next = myflow
@@ -111,12 +140,13 @@ fn solve_part2(
                             steps_remain - 2,
                             memo,
                             total_nodes,
+                            open_count,
                         );
 
                     best = best.max(next);
                 }
 
-                opened.pop();
+                opened.set_closed(elnode.idx, &mut open_count);
             }
         }
 
@@ -131,18 +161,19 @@ fn solve_part2(
                     steps_remain - 1,
                     memo,
                     total_nodes,
+                    open_count,
                 );
             best = best.max(next);
         }
 
-        opened.pop();
+        opened.set_closed(mynode.idx, &mut open_count);
     }
 
     // do not open the node here and go straight to the next one
     // instead the elephant can open a valve (maybe)
-    if elnode.rate > 0 && !opened.contains(&elephantloc.to_string()) {
+    if elnode.rate > 0 && !opened.is_open(elnode.idx) {
         let elflow = elnode.rate * (steps_remain - 1);
-        opened.push(elephantloc.to_string());
+        opened.set_open(elnode.idx, &mut open_count);
 
         for mychild in &mynode.children {
             let next = solve_part2(
@@ -153,11 +184,12 @@ fn solve_part2(
                 steps_remain - 1,
                 memo,
                 total_nodes,
+                open_count,
             );
             best = best.max(next + elflow);
         }
 
-        opened.pop();
+        opened.set_closed(elnode.idx, &mut open_count);
     }
 
     // neither of us open a node
@@ -171,6 +203,7 @@ fn solve_part2(
                 steps_remain - 1,
                 memo,
                 total_nodes,
+                open_count,
             );
             best = best.max(next);
         }
@@ -194,7 +227,21 @@ fn main() {
         let rate: i32 = captures[2].parse().unwrap();
         let children: Vec<String> = captures[3].split(", ").map(|s| s.to_owned()).collect();
 
-        nodes.insert(node, Node { rate, children });
+        nodes.insert(
+            node,
+            Node {
+                rate,
+                children,
+                idx: 0,
+            },
+        );
+    }
+
+    let mut idx = 0;
+
+    for (_key, node) in nodes.iter_mut() {
+        node.idx = idx;
+        idx += 1;
     }
 
     let mut memo = HashMap::new();
@@ -205,11 +252,11 @@ fn main() {
     println!("part 1: {}", part1);
 
     let mut memo = HashMap::new();
-    let mut opened: Vec<String> = vec![];
+    let mut opened: OpenMask = 0;
 
     let non_zero = nodes.iter().filter(|(_, n)| n.rate > 0).count();
 
-    let part2 = solve_part2("AA", "AA", &nodes, &mut opened, 26, &mut memo, non_zero);
+    let part2 = solve_part2("AA", "AA", &nodes, &mut opened, 26, &mut memo, non_zero, 0);
 
     println!("part 2: {}", part2);
 }
