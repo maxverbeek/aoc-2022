@@ -11,6 +11,8 @@ struct Cube {
     z: usize,
 }
 
+type Vec3<T> = Vec<Vec<Vec<T>>>;
+
 impl FromStr for Cube {
     type Err = Box<dyn Error>;
 
@@ -39,7 +41,7 @@ fn max_coord(cubes: &[Cube]) -> (usize, usize, usize) {
     (x, y, z)
 }
 
-fn face_count(map: &Vec<Vec<Vec<bool>>>, cubes: &[Cube]) -> usize {
+fn face_count(map: &Vec3<bool>, cubes: &[Cube]) -> usize {
     let mut faces = 0;
 
     let sz = map.len();
@@ -75,7 +77,7 @@ fn face_count(map: &Vec<Vec<Vec<bool>>>, cubes: &[Cube]) -> usize {
     faces
 }
 
-fn find_labels(map: &Vec<Vec<Vec<bool>>>) -> Vec<Vec<Vec<usize>>> {
+fn find_labels(map: &Vec3<bool>) -> Vec3<usize> {
     let sz = map.len();
     let sy = map[0].len();
     let sx = map[0][0].len();
@@ -162,7 +164,7 @@ fn union_sets(equivalences: &mut [usize], x: usize, y: usize) {
     equivalences[ry] = root;
 }
 
-fn make_cubes(map: &Vec<Vec<Vec<bool>>>) -> Vec<Cube> {
+fn make_cubes(map: &Vec3<bool>) -> Vec<Cube> {
     let cubes: Vec<Cube> = map
         .iter()
         .enumerate()
@@ -179,7 +181,7 @@ fn make_cubes(map: &Vec<Vec<Vec<bool>>>) -> Vec<Cube> {
     cubes
 }
 
-fn make_inside_map(labels: &Vec<Vec<Vec<usize>>>) -> Vec<Vec<Vec<bool>>> {
+fn make_inside_map(labels: &Vec3<usize>) -> Vec3<bool> {
     let sz = labels.len();
     let sy = labels[0].len();
     let sx = labels[0][0].len();
