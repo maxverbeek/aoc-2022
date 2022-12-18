@@ -1,5 +1,4 @@
 use std::{
-    collections::VecDeque,
     error::Error,
     io::{stdin, BufRead},
     str::FromStr,
@@ -76,64 +75,91 @@ fn face_count(map: &Vec<Vec<Vec<bool>>>, cubes: &[Cube]) -> usize {
     faces
 }
 
-fn connected_components(start: &Cube, map: &Vec<Vec<Vec<bool>>>) -> Vec<Vec<Vec<bool>>> {
+fn find_labels(map: &Vec<Vec<Vec<bool>>>) -> Vec<Vec<Vec<usize>>> {
     let sz = map.len();
     let sy = map[0].len();
     let sx = map[0][0].len();
 
-    let mut component = vec![vec![vec![false; sx]; sy]; sz];
-    component[start.z][start.y][start.x] = true;
+    let mut labels = vec![vec![vec![0; sx]; sy]; sz];
+    let mut nextlabel = 0;
+    let mut equivalences = Vec::new();
 
-    let mut queue: VecDeque<(usize, usize, usize)> = VecDeque::new();
-    queue.push_back((start.x, start.y, start.z));
+    for z in 0..sz {
+        for y in 0..sy {
+            for x in 0..sx {
+                let mut neighbours: [usize; 3] = [0; 3];
+                let mut nlen = 0;
+                let thispx = map[z][y][x];
 
-    while let Some((x, y, z)) = queue.pop_front() {
-        let this = map[z][y][x];
+                if x > 0 && map[z][y][x - 1] == thispx {
+                    neighbours[nlen] = labels[z][y][x - 1];
+                    nlen += 1;
+                }
 
-        if x > 0 && !component[z][y][x - 1] && map[z][y][x - 1] == this {
-            component[z][y][x - 1] = true;
-            queue.push_back((x - 1, y, z));
-        }
+                if y > 0 && map[z][y - 1][x] == thispx {
+                    neighbours[nlen] = labels[z][y - 1][x];
+                    nlen += 1;
+                }
 
-        if x < sx - 1 && !component[z][y][x + 1] && map[z][y][x + 1] == this {
-            component[z][y][x + 1] = true;
-            queue.push_back((x + 1, y, z));
-        }
+                if z > 0 && map[z - 1][y][x] == thispx {
+                    neighbours[nlen] = labels[z - 1][y][x];
+                    nlen += 1;
+                }
 
-        if y > 0 && !component[z][y - 1][x] && map[z][y - 1][x] == this {
-            component[z][y - 1][x] = true;
-            queue.push_back((x, y - 1, z));
-        }
+                if nlen == 0 {
+                    // there are no neighbouring labels yet, create a new one and assign it to this
+                    // pixel
+                    labels[z][y][x] = nextlabel;
 
-        if y < sy - 1 && !component[z][y + 1][x] && map[z][y + 1][x] == this {
-            component[z][y + 1][x] = true;
-            queue.push_back((x, y + 1, z));
-        }
+                    equivalences.push(nextlabel);
+                    nextlabel += 1;
+                } else {
+                    // use the smallest label that we find here as the "root" label, and union all
+                    // other neighbour sets with this label.
+                    let smallest = *neighbours[0..nlen].iter().min().expect("nlen > 0");
+                    labels[z][y][x] = smallest;
 
-        if z > 0 && !component[z - 1][y][x] && map[z - 1][y][x] == this {
-            component[z - 1][y][x] = true;
-            queue.push_back((x, y, z - 1));
-        }
-
-        if z < sz - 1 && !component[z + 1][y][x] && map[z + 1][y][x] == this {
-            component[z + 1][y][x] = true;
-            queue.push_back((x, y, z + 1));
-        }
-    }
-
-    component
-}
-
-fn invert(mut map: Vec<Vec<Vec<bool>>>) -> Vec<Vec<Vec<bool>>> {
-    for z in map.iter_mut() {
-        for y in z.iter_mut() {
-            for x in y.iter_mut() {
-                *x = !*x;
+                    for &l in &neighbours[0..nlen] {
+                        union_sets(&mut equivalences, smallest, l);
+                    }
+                }
             }
         }
     }
 
-    map
+    for z in 0..sz {
+        for y in 0..sy {
+            for x in 0..sx {
+                labels[z][y][x] = find_root(labels[z][y][x], &mut equivalences);
+            }
+        }
+    }
+
+    labels
+}
+
+fn find_root(label: usize, equivalences: &mut [usize]) -> usize {
+    let mut root = label;
+
+    while equivalences[root] != root {
+        (root, equivalences[root]) = (equivalences[root], equivalences[equivalences[root]]);
+    }
+
+    root
+}
+
+fn union_sets(equivalences: &mut [usize], x: usize, y: usize) {
+    let rx = find_root(x, equivalences);
+    let ry = find_root(y, equivalences);
+
+    if rx == ry {
+        return;
+    }
+
+    let root = rx.max(ry);
+
+    equivalences[rx] = root;
+    equivalences[ry] = root;
 }
 
 fn make_cubes(map: &Vec<Vec<Vec<bool>>>) -> Vec<Cube> {
@@ -151,6 +177,26 @@ fn make_cubes(map: &Vec<Vec<Vec<bool>>>) -> Vec<Cube> {
         .collect();
 
     cubes
+}
+
+fn make_inside_map(labels: &Vec<Vec<Vec<usize>>>) -> Vec<Vec<Vec<bool>>> {
+    let sz = labels.len();
+    let sy = labels[0].len();
+    let sx = labels[0][0].len();
+
+    let outterlabel = labels[0][0][0];
+
+    let mut inside = vec![vec![vec![false; sx]; sy]; sz];
+
+    for z in 0..(sz) {
+        for y in 0..(sy) {
+            for x in 0..(sx) {
+                inside[z][y][x] = labels[z][y][x] != outterlabel;
+            }
+        }
+    }
+
+    inside
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -180,8 +226,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("nr of faces: {}", face_count(&map, &cubes));
 
-    let outside = connected_components(&Cube { x: 0, y: 0, z: 0 }, &map);
-    let inside = invert(outside);
+    let labels = find_labels(&map);
+    let inside = make_inside_map(&labels);
     let insidecubes = make_cubes(&inside);
 
     println!("nr of outward faces: {}", face_count(&inside, &insidecubes));
