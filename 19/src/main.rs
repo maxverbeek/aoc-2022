@@ -30,7 +30,7 @@ fn main() {
         let bp = bp.clone();
         let handle = thread::spawn(move || {
             let mut memo = HashMap::new();
-            let geodes = naivememo::find_geodes(&bp, &mut memo, 24, 0, 0, 0, 1, 0, 0, 0);
+            let geodes = naivememo::find_geodes(&bp, &mut memo, 23, 0, 0, 0, 1, 0, 0);
 
             println!("bp {} produces {} geodes", bp.idx, geodes);
 
@@ -49,18 +49,18 @@ fn main() {
 
     println!("--- elephant found food and ate nearly all blueprints ---");
 
-    let part2sum = Arc::new(Mutex::new(0));
+    let part2sum = Arc::new(Mutex::new(1));
 
-    for bp in &blueprints[0..2] {
+    for bp in &blueprints[0..3] {
         let part2sum = part2sum.clone();
         let bp = bp.clone();
         let mut memo = HashMap::new();
-        let geodes = naivememo::find_geodes(&bp, &mut memo, 32, 0, 0, 0, 1, 0, 0, 0);
+        let geodes = naivememo::find_geodes(&bp, &mut memo, 31, 0, 0, 0, 1, 0, 0);
 
         println!("bp {} produces {} geodes", bp.idx, geodes);
 
         let mut part2sum = part2sum.lock().unwrap();
-        *part2sum += bp.idx * geodes;
+        *part2sum *= geodes;
     }
 
     println!("part 2 quality level: {}", part2sum.lock().unwrap());

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::types::Blueprint;
 
-type Key = (usize, usize, usize, usize, usize, usize, usize, usize);
+type Key = (usize, usize, usize, usize, usize, usize, usize);
 
 pub fn find_geodes(
     bp: &Blueprint,
@@ -14,7 +14,6 @@ pub fn find_geodes(
     orebots: usize,
     claybots: usize,
     obsidianbots: usize,
-    geobots: usize,
 ) -> usize {
     if time == 0 {
         return 0;
@@ -22,16 +21,7 @@ pub fn find_geodes(
 
     // println!("t={time}, ore: {ore}, clay: {clay}, obsidian: {obsidian}, orebots: {orebots}, claybots: {claybots}, obsbots: {obsidianbots}, geobots: {geobots}");
 
-    let key: Key = (
-        time,
-        ore,
-        clay,
-        obsidian,
-        orebots,
-        claybots,
-        obsidianbots,
-        geobots,
-    );
+    let key: Key = (time, ore, clay, obsidian, orebots, claybots, obsidianbots);
 
     if let Some(&ans) = memo.get(&key) {
         return ans;
@@ -58,7 +48,6 @@ pub fn find_geodes(
             orebots,
             claybots,
             obsidianbots,
-            geobots,
         );
 
         optimal = optimal.max(ans);
@@ -79,7 +68,6 @@ pub fn find_geodes(
             orebots,
             claybots,
             obsidianbots,
-            geobots,
         );
 
         optimal = optimal.max(ans);
@@ -101,7 +89,6 @@ pub fn find_geodes(
             orebots,
             claybots,
             obsidianbots,
-            geobots,
         );
         optimal = optimal.max(ans);
     }
@@ -110,20 +97,19 @@ pub fn find_geodes(
     if ore - orebots >= bp.geodebot.0 && obsidian - obsidianbots >= bp.geodebot.1 {
         let ore = ore - bp.geodebot.0;
         let obsidian = obsidian - bp.geodebot.1;
-        let geobots = geobots + 1;
 
-        let ans = find_geodes(
-            bp,
-            memo,
-            time - 1,
-            ore,
-            clay,
-            obsidian,
-            orebots,
-            claybots,
-            obsidianbots,
-            geobots,
-        );
+        let ans = time
+            + find_geodes(
+                bp,
+                memo,
+                time - 1,
+                ore,
+                clay,
+                obsidian,
+                orebots,
+                claybots,
+                obsidianbots,
+            );
 
         optimal = optimal.max(ans);
     }
@@ -140,14 +126,11 @@ pub fn find_geodes(
             orebots,
             claybots,
             obsidianbots,
-            geobots,
         );
 
         optimal = optimal.max(ans);
     }
 
-    let ans = geobots + optimal;
-
-    memo.insert(key, ans);
-    ans
+    memo.insert(key, optimal);
+    optimal
 }
