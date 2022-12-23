@@ -215,8 +215,11 @@ fn main() {
         } else {
             round += 1;
         }
+
+        if round == 11 {
+            println!("surface total after 10 rounds: {}", calcsurface(&map));
+        }
     }
 
-    println!("surface total: {}", calcsurface(&map));
     println!("total roudns: {}", round);
 }
